@@ -41,7 +41,8 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDB");
 const userSchema = new mongoose.Schema ({
     email: String,
     password: String,
-    googleId: String
+    googleId: String,
+    secret: String
 });
 
 // /****** encrypting ******/
@@ -106,12 +107,10 @@ app.get("/register", function(req, res){
     res.render("register");
 });
 
-app.get("/secrets", function(req, res){
-    if(req.isAuthenticated()){
-        res.render("secrets");
-    } else {
-        res.redirect("/login");
-    }
+app.get("/secrets", async function(req, res){
+    const foundUsers = await User.find( { secret: { $ne:null }});
+
+    res.render("secrets", {usersWithSecrets: foundUsers});
 });
 
 app.get("/logout", function(req, res){
@@ -123,6 +122,14 @@ app.get("/logout", function(req, res){
                 res.redirect('/');
             }
     });
+});
+
+app.get("/submit", function(req, res){
+    if(req.isAuthenticated()){
+        res.render("submit");
+    } else {
+        res.redirect("/login");
+    }
 });
 
 /****** POST ******/
@@ -181,6 +188,15 @@ app.post("/login", async function(req, res) {
         }
     })
 
+});
+
+app.post("/submit", async function(req, res){
+    const submittedSecret = req.body.secret;
+
+    const loggedUser = await User.findById(req.user.id);
+    loggedUser.secret = submittedSecret;
+    loggedUser.save();
+    res.redirect("/secrets");
 });
 
 
